@@ -21,9 +21,8 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.reactivex.subjects.AsyncSubject
-import io.reactivex.subjects.Subject
 import ru.goldenapple.ga_sdk.dto.BluetoothDeviceDto
+import ru.goldenapple.ga_sdk.yanavi.NavigatorMethods
 
 
 const val TAG: String = "ga_sdk";
@@ -33,7 +32,8 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
     val namespace = "ga_sdk"
 
     lateinit var binding: ActivityPluginBinding
-    private lateinit var channel: MethodChannel
+    private  var channel: MethodChannel? = null
+    private  var navigatorChannel: MethodChannel? = null
     private lateinit var eventChannel: EventChannel
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
@@ -43,9 +43,12 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
         flutterPluginBinding = fpb;
         bluetoothManager = flutterPluginBinding.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager;
         eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "$namespace/state_stream");
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/method")
-        channel.setMethodCallHandler(this)
 
+        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/method")
+        channel?.setMethodCallHandler(this)
+
+        navigatorChannel = MethodChannel(flutterPluginBinding.binaryMessenger,"$namespace/${NavigatorMethods.NAMESPACE}");
+        navigatorChannel?.setMethodCallHandler(NavigatorMethods(fpb.applicationContext));
     }
 
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -58,7 +61,10 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
+        channel?.setMethodCallHandler(null)
+        channel = null
+        navigatorChannel?.setMethodCallHandler(null)
+        navigatorChannel = null;
     }
 
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
