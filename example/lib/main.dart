@@ -46,26 +46,15 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: StreamBuilder<dynamic>(
-            stream: GaSdk.state,
-            initialData: '...',
-            builder: (context, data) {
-              return Text(data.data.toString());
-            },
-          ),
-        ),
-        body: FutureBuilder<List<BluetoothDeviceDto>>(
-          future: GaSdk.getBoundedDevices(),
-          initialData: [],
-          builder: (context, AsyncSnapshot<List<BluetoothDeviceDto>> a) {
-            return ListView(
-            children: a.data.map((e) => ListTile(title: Text(e.name))).toList()
-        );
-          },
-        )
-      ),
-    );
+        home: StreamBuilder<dynamic>(
+      stream: GaSdk.state,
+      initialData: '...',
+      builder: (context, data) => Scaffold(
+          appBar: AppBar(title: Text(data.data.toString())),
+          body: FutureBuilder<List<BluetoothDeviceDto>>(
+              future: GaSdk.getBoundedDevices(),
+              initialData: [],
+              builder: (context, AsyncSnapshot<List<BluetoothDeviceDto>> a) => ListView(children: a.data.map((e) => ListTile(title: Text(e.name))).toList()))),
+    ));
   }
 }
