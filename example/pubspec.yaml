@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  path_provider: ^1.6.24
   ga_sdk:
     # When depending on this package from a real application you should use:
     #   ga_sdk: ^x.y.z
@@ -33,7 +33,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter.
 flutter:
-
+  assets:
+    - assets/key/293_private_key.pem
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
