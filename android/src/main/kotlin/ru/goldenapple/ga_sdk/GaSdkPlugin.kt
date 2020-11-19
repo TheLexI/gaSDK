@@ -72,6 +72,8 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
         channel = null
         navigatorChannel?.setMethodCallHandler(null)
         navigatorChannel = null;
+
+        bluetoothStateStreamHandler.onCancel("");
     }
 
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
@@ -144,14 +146,13 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
-        bluetoothStateStreamHandler.onCancel("");
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
     }
 
     override fun onDetachedFromActivity() {
-        bluetoothStateStreamHandler.onCancel("");
+
     }
 
 }
