@@ -3,9 +3,14 @@ package ru.goldenapple.ga_sdk.yanavi
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Base64
 import androidx.annotation.NonNull
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.security.KeyFactory
+import java.security.Signature
+import java.security.spec.EncodedKeySpec
+import java.security.spec.PKCS8EncodedKeySpec
 
 private enum class MapType { google, googleGo, amap, baidu, waze, yandexNavi, yandexMaps, citymapper, mapswithme, osmand, doubleGis }
 
@@ -15,9 +20,9 @@ private class MapModel(val mapType: MapType, val mapName: String, val packageNam
     }
 }
 
-class NavigatorMethods(private val context: Context): MethodChannel.MethodCallHandler {
+class NavigatorMethods(private val context: Context) : MethodChannel.MethodCallHandler {
     companion object {
-        const val NAMESPACE : String = "NavigatorMethods"
+        const val NAMESPACE: String = "NavigatorMethods"
     }
 
     private val maps = listOf(
@@ -62,10 +67,30 @@ class NavigatorMethods(private val context: Context): MethodChannel.MethodCallHa
                 val args = call.arguments as Map<*, *>
                 result.success(isMapAvailable(args["mapType"] as String))
             }
+            "getYandexNaviSignature" -> {
+                val args = call.arguments as Map<*, *>
+                result.success(getYandexNaviSignature(args["url"] as String, args["privateKey"] as String))
+            }
             else -> result.notImplemented()
         }
     }
 
+    private fun getYandexNaviSignature(url: String, key: String): String {
+        val trimmedKey: String = key.replace(Regex("""\s*[-].*\sPRIVATE KEY\s*[-]+\s*"""), "").replace("\\s", "");
+        try {
+            val result = Base64.decode(trimmedKey, Base64.DEFAULT).asList();
+            val factory: KeyFactory = KeyFactory.getInstance("RSA");
+            val keySpec: EncodedKeySpec = PKCS8EncodedKeySpec(result.toByteArray());
+            val signature = Signature.getInstance("SHA256withRSA");
+            signature.initSign(factory.generatePrivate(keySpec));
+            signature.update(url.toByteArray());
+
+            val encrypted = signature.sign();
+            return Base64.encodeToString(encrypted, Base64.NO_WRAP);
+        } catch (e: Exception) {
+            throw SecurityException("Error calculating cipher data. SIC!");
+        }
+    }
 
 
     private fun isMapAvailable(type: String): Boolean {

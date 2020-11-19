@@ -9,12 +9,10 @@ environment:
   flutter: ">=1.20.0"
 
 dependencies:
-  encrypt: ^4.1.0
   flutter:
     sdk: flutter
 
 dev_dependencies:
-  path_provider: ^1.6.24
   flutter_test:
     sdk: flutter
 

@@ -1,12 +1,7 @@
-import 'dart:io';
-
-import 'package:encrypt/encrypt.dart';
-import 'package:encrypt/encrypt_io.dart';
 import 'package:flutter/material.dart';
+import 'package:ga_sdk/ga_sdk.dart';
 import 'package:ga_sdk/map_launcher/models.dart';
 import 'package:ga_sdk/map_launcher/utils.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/services.dart' show rootBundle;
 
 Future<String> getYaNavDirectionsUrl(
     {@required MapType mapType,
@@ -29,16 +24,9 @@ Future<String> getYaNavDirectionsUrl(
     },
   );
 
-  var path = '${(await getApplicationDocumentsDirectory()).path}/yanavi.pem';
-  var file = await File(path);
-  await file.writeAsString(await rootBundle.loadString(privateKey));
+  if(null == client || null == privateKey) return Uri.encodeFull(url);
 
-  final privateKey_ = await parseKeyFromFile(path);
-  final signer = Signer(RSASigner(RSASignDigest.SHA256, privateKey: privateKey_));
-  final signature = Uri.encodeFull(signer.sign(url).base64);
-
-  print(signature);
-
+  final signature = await GaSdk.MapLauncher.getYandexNaviSignature(url, privateKey);
   url = Uri.encodeFull(url) + '&signature=${Uri.encodeComponent(signature)}';
 
   return url;

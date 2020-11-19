@@ -56,6 +56,7 @@ class MapLauncherClass {
       DirectionsMode directionsMode = DirectionsMode.driving,
       String privateKey,
       String clientId}) async {
+
     String url;
 
     if (MapType.yandexNavi == mapType) {
@@ -100,5 +101,12 @@ class MapLauncherClass {
       'isMapAvailable',
       {'mapType': Utils.enumToString(mapType)},
     );
+  }
+
+  getYandexNaviSignature(String url, String privateKey) async {
+    return _channel.invokeMethod('getYandexNaviSignature', {
+      "url": url,
+      "privateKey": privateKey
+    });
   }
 }
