@@ -10,7 +10,7 @@ class GaSdk {
   static const MethodChannel _channel = const MethodChannel('${NAMESPACE}/method');
   static final _state_stream = const EventChannel('${NAMESPACE}/state_stream');
 
-  static Stream<dynamic> get state => _state_stream.receiveBroadcastStream();
+  static Stream<dynamic> get bluetoothAdapterState => _state_stream.receiveBroadcastStream();
 
   static Future<String> get platformVersion async {
     final String version = await _channel.invokeMethod('getPlatformVersion');

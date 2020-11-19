@@ -2,6 +2,7 @@ package ru.goldenapple.ga_sdk
 
 
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,6 +13,9 @@ import android.util.Log
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -21,8 +25,11 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import org.json.JSONArray
 import ru.goldenapple.ga_sdk.dto.BluetoothDeviceDto
+import ru.goldenapple.ga_sdk.dto.BluetoothDeviceDtoSerializer
 import ru.goldenapple.ga_sdk.yanavi.NavigatorMethods
+import java.lang.Exception
 
 
 const val TAG: String = "ga_sdk";
@@ -32,8 +39,8 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
     val namespace = "ga_sdk"
 
     lateinit var binding: ActivityPluginBinding
-    private  var channel: MethodChannel? = null
-    private  var navigatorChannel: MethodChannel? = null
+    private var channel: MethodChannel? = null
+    private var navigatorChannel: MethodChannel? = null
     private lateinit var eventChannel: EventChannel
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
@@ -47,7 +54,7 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/method")
         channel?.setMethodCallHandler(this)
 
-        navigatorChannel = MethodChannel(flutterPluginBinding.binaryMessenger,"$namespace/${NavigatorMethods.NAMESPACE}");
+        navigatorChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/${NavigatorMethods.NAMESPACE}");
         navigatorChannel?.setMethodCallHandler(NavigatorMethods(fpb.applicationContext));
     }
 
@@ -69,19 +76,31 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     fun getBtBoundedDevices(): String? {
+        Log.d(TAG, "getBtBoundedDevices - start");
+        val dev: Set<BluetoothDevice> = bluetoothManager.adapter?.bondedDevices ?: setOf();
+        Log.d(TAG, dev.size.toString());
+        dev.forEach {
+            Log.d(TAG, it.name)
+        }
+        if (dev.count() == 0) return "[]"
 
-        return Gson().toJson(
-                bluetoothManager.adapter?.bondedDevices?.map {
-                    BluetoothDeviceDto(
-                            name = it.name,
-                            address = it.address,
-                            bondState = it.bondState,
-                            type = it.type,
-                            deviceClass = it.bluetoothClass.deviceClass,
-                            majorDeviceClass = it.bluetoothClass.majorDeviceClass
-                    )
-                } ?: listOf<BluetoothDeviceDto>()
-        );
+        val devices = dev.map {
+            BluetoothDeviceDto(
+                    name = it.name,
+                    address = it.address,
+                    type = it.type,
+                    bondState = it.bondState,
+                    deviceClass = it.bluetoothClass?.deviceClass ?: 0,
+                    majorDeviceClass=it.bluetoothClass?.majorDeviceClass ?: 0
+            )
+        }
+
+        val json = GsonBuilder().registerTypeAdapter(BluetoothDeviceDto::class.java, BluetoothDeviceDtoSerializer()).create().toJson(devices);
+
+
+        Log.d(TAG, json);
+        Log.d(TAG, "getBtBoundedDevices - end");
+        return json
     }
 
     private val bluetoothStateStreamHandler: StreamHandler = object : StreamHandler {
@@ -111,7 +130,10 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         override fun onCancel(arguments: Any?) {
             Log.d("$TAG: Bluetooth", "onCancel")
-            binding.activity.unregisterReceiver(mReceiver);
+            try {
+                binding.activity.unregisterReceiver(mReceiver);
+            } catch (ex: Exception) {
+            }
         }
 
     }
@@ -122,12 +144,14 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        bluetoothStateStreamHandler.onCancel("");
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
     }
 
     override fun onDetachedFromActivity() {
+        bluetoothStateStreamHandler.onCancel("");
     }
 
 }

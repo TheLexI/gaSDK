@@ -50,7 +50,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
         home: StreamBuilder<dynamic>(
-      stream: GaSdk.state,
+      stream: GaSdk.bluetoothAdapterState,
       initialData: '...',
       builder: (context, data) => Scaffold(
           appBar: AppBar(title: Text(data.data.toString())),

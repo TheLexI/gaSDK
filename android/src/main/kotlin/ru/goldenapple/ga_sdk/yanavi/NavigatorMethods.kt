@@ -83,15 +83,6 @@ class NavigatorMethods(private val context: Context): MethodChannel.MethodCallHa
         }
     }
 
-    private fun launchYandexNavigator(url: String) {
-        context?.let {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            if (intent.resolveActivity(it.packageManager) != null) {
-                it.startActivity(intent)
-            }
-        }
-    }
 
     private fun launchMap(mapType: MapType, url: String, result: MethodChannel.Result) {
         context?.let {

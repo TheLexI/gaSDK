@@ -43,7 +43,7 @@ class AvailableMap {
     return AvailableMap(
       mapName: json['mapName'],
       mapType: Utils.enumFromString(MapType.values, json['mapType']),
-      icon: 'packages/map_launcher.dart/assets/icons/${json['mapType']}.svg',
+      icon: '${json['mapType']}.svg',
     );
   }
 
