@@ -12,10 +12,7 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -25,9 +22,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import org.json.JSONArray
-import ru.goldenapple.ga_sdk.dto.BluetoothDeviceDto
-import ru.goldenapple.ga_sdk.dto.BluetoothDeviceDtoSerializer
+import ru.goldenapple.ga_sdk.dto.BluetoothDeviceSerializer
 import ru.goldenapple.ga_sdk.yanavi.NavigatorMethods
 import java.lang.Exception
 
@@ -86,19 +81,9 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
         if (dev.count() == 0) return "[]"
 
-        val devices = dev.map {
-            BluetoothDeviceDto(
-                    name = it.name,
-                    address = it.address,
-                    type = it.type,
-                    bondState = it.bondState,
-                    deviceClass = it.bluetoothClass?.deviceClass ?: 0,
-                    majorDeviceClass=it.bluetoothClass?.majorDeviceClass ?: 0
-            )
-        }
+        val devices = dev.toList();
 
-        val json = GsonBuilder().registerTypeAdapter(BluetoothDeviceDto::class.java, BluetoothDeviceDtoSerializer()).create().toJson(devices);
-
+        val json = GsonBuilder().registerTypeAdapter(BluetoothDevice::class.java, BluetoothDeviceSerializer()).create().toJson(devices);
 
         Log.d(TAG, json);
         Log.d(TAG, "getBtBoundedDevices - end");
