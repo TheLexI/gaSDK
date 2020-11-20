@@ -12,7 +12,6 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
-import com.google.gson.GsonBuilder
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -22,7 +21,8 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import ru.goldenapple.ga_sdk.dto.BluetoothDeviceSerializer
+import org.json.JSONArray
+import org.json.JSONObject
 import ru.goldenapple.ga_sdk.yanavi.NavigatorMethods
 import java.lang.Exception
 
@@ -81,9 +81,15 @@ class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
         if (dev.count() == 0) return "[]"
 
-        val devices = dev.toList();
-
-        val json = GsonBuilder().registerTypeAdapter(BluetoothDevice::class.java, BluetoothDeviceSerializer()).create().toJson(devices);
+        val json = JSONArray(dev.map {
+            JSONObject()
+                    .put( "name", it.name )
+                    .put( "address", it.address )
+                    .put( "type", it.type )
+                    .put( "bondState", it.bondState )
+                    .put( "deviceClass", it.bluetoothClass.deviceClass )
+                    .put( "majorDeviceClass", it.bluetoothClass.majorDeviceClass )
+        }).toString()
 
         Log.d(TAG, json);
         Log.d(TAG, "getBtBoundedDevices - end");

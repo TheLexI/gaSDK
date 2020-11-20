@@ -8,8 +8,8 @@ import io.flutter.embedding.engine.FlutterEngine
 class MainActivity : FlutterActivity() {
     // You can keep this empty class or remove it. Plugins on the new embedding
     // now automatically registers plugins.
-    override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
+    /*override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.plugins.add(GaSdkPlugin());
-    }
+    }*/
 }
