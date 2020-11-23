@@ -98,21 +98,8 @@ public class IBoxPaymentControllerListener implements PaymentControllerListener 
                     .put("DeferredData", paymentResultContext.getDeferredData())
                     .put("TranId", paymentResultContext.getTranId())
                     .put("RequiresSignature", paymentResultContext.isRequiresSignature())
-                    .put("AttachedCard", new JSONObject()
-                            .put("isDeleted", paymentResultContext.getAttachedCard().isDeleted())
-                            .put("Status", paymentResultContext.getAttachedCard().getStatus().name())
-                            .put("State", paymentResultContext.getAttachedCard().getState().name())
-                            .put("PanMasked", paymentResultContext.getAttachedCard().getPanMasked())
-                            .put("PANEnding", paymentResultContext.getAttachedCard().getPANEnding())
-                            .put("ID", paymentResultContext.getAttachedCard().getID())
-                            .put("Bin", paymentResultContext.getAttachedCard().getBin())
-                            .put("Alias", paymentResultContext.getAttachedCard().getAlias())
-                            .put("Balance", paymentResultContext.getAttachedCard().getBalance())
-                    )
-                    .put("ScheduleItem", new JSONObject()
-                            .put("ID", paymentResultContext.getScheduleItem().getID())
-                            .put("Card", paymentResultContext.getScheduleItem().getCard().getJSON())
-                    )
+                    .put("AttachedCard", new JSONObject())
+                    .put("ScheduleItem", new JSONObject())
                     .put("TransactionItem", paymentResultContext.getTransactionItem().getJSON());
 
             handler.disable();

@@ -51,8 +51,8 @@ class PaymentResult {
         DeferredData: data['DeferredData'] as String,
         TranId: data['TranId'] as String,
         RequiresSignature: data['RequiresSignature'] as bool,
-        AttachedCard: AttachedCardData.fromJson(data['AttachedCard'] as Map<String, dynamic>),
-        ScheduleItem: ScheduleItemData.fromJson(data['ScheduleItem'] as Map<String, dynamic>),
+        //AttachedCard: AttachedCardData.fromJson(data['AttachedCard'] as Map<String, dynamic>),
+        //ScheduleItem: ScheduleItemData.fromJson(data['ScheduleItem'] as Map<String, dynamic>),
         TransactionItem: data['TransactionItem'] as Map<String, dynamic>,
       );
 }
