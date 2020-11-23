@@ -80,6 +80,7 @@ public class IBoxPaymentControllerListener implements PaymentControllerListener 
 
     @Override
     public void onError(PaymentController.PaymentError paymentError, String s) {
+        handler.disable();
         Log.d(namespace, String.format("onError {%1s, %2d, %3s}", paymentError.name(), paymentError.ordinal(), s == null ? "" : s));
         channel.invokeMethod(DartMethods.ON_ERROR.name, new HashMap<String, String>() {{
             put("code", String.valueOf(paymentError.ordinal()));
@@ -114,11 +115,12 @@ public class IBoxPaymentControllerListener implements PaymentControllerListener 
                     )
                     .put("TransactionItem", paymentResultContext.getTransactionItem().getJSON());
 
+            handler.disable();
+
             Log.d(namespace, String.format("onReturnPowerOffNFCResult {%1s}", paymentResultContextJson.toString(4)));
 
             channel.invokeMethod(DartMethods.ON_FINISHED.name, paymentResultContextJson.toString());
 
-            handler.disable();
         } catch (JSONException e) {
             handler.disable();
             e.printStackTrace();

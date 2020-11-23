@@ -6,6 +6,7 @@ import 'package:meta/meta.dart';
 
 import 'package:ga_sdk/IBox/PaymentRequest.dart';
 import 'package:ga_sdk/ga_sdk.dart';
+import 'package:ga_sdk/IBox/types.dart';
 
 class IBox {
   final MethodChannel _channel = const MethodChannel('${GaSdk.NAMESPACE}/IBox/methods');

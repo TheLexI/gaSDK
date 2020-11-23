@@ -32,8 +32,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter.
 flutter:
-  assets:
-    - assets/key/293_private_key.pem
+  #assets:
+  #  - assets/key/293_private_key.pem
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

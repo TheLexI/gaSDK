@@ -33,7 +33,10 @@ class GaSdkPlugin() : FlutterPlugin, ActivityAware {
 
     private var navigatorChannel: MethodChannel? = null
 
+    private lateinit var ibox: IBox;
     private var  paymentChannel: MethodChannel? = null;
+
+
 
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     override fun onAttachedToEngine(@NonNull fpb: FlutterPlugin.FlutterPluginBinding) {
@@ -54,7 +57,6 @@ class GaSdkPlugin() : FlutterPlugin, ActivityAware {
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         this.binding = binding
-
         initializeBluetooth()
         initializeNavigatorLaugh()
         initializePayment()
@@ -99,11 +101,14 @@ class GaSdkPlugin() : FlutterPlugin, ActivityAware {
 
 
     private fun initializePayment(){
+        ibox = IBox(binding.activity, paymentChannel);
+        ibox.onCreate();
         paymentChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "ga_sdk/IBox/methods")
-        paymentChannel?.setMethodCallHandler(IBox(binding.activity, paymentChannel))
+        paymentChannel?.setMethodCallHandler(ibox);
     }
 
     private fun destroyPayment(){
+        ibox.onDestroy();
         paymentChannel?.setMethodCallHandler(null)
         paymentChannel = null
     }

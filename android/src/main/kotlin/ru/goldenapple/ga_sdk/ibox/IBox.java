@@ -124,6 +124,7 @@ public class IBox implements MethodChannel.MethodCallHandler {
         _paymentController.setSingleStepEMV(true);
         _paymentController.setCredentials(login, password);
         _paymentController.auth(context);
+        _paymentController.initPaymentSession();
         _paymentController.enable();
 
         _beginPayment = (t) -> {
@@ -150,6 +151,14 @@ public class IBox implements MethodChannel.MethodCallHandler {
     void dismiss() {
 
         _paymentController.disable();
+    }
+
+    public void onCreate() {
+        //_paymentController.onCreate(context, null);
+    }
+
+    public void onDestroy() {
+        //_paymentController.onDestroy();
     }
 
 }
