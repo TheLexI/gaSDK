@@ -1,149 +1,110 @@
 package ru.goldenapple.ga_sdk
 
 
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
-import android.util.Log
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.EventChannel
-import io.flutter.plugin.common.EventChannel.StreamHandler
-import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
-import org.json.JSONArray
-import org.json.JSONObject
+import ru.goldenapple.ga_sdk.bluetooth.BluetoothHandler
+import ru.goldenapple.ga_sdk.bluetooth.BluetoothStreamHandler
+import ru.goldenapple.ga_sdk.ibox.IBox
 import ru.goldenapple.ga_sdk.yanavi.NavigatorMethods
-import java.lang.Exception
 
 
 const val TAG: String = "ga_sdk";
 
 /** GaSdkPlugin */
-class GaSdkPlugin() : FlutterPlugin, MethodCallHandler, ActivityAware {
+class GaSdkPlugin() : FlutterPlugin, ActivityAware {
     val namespace = "ga_sdk"
 
-    lateinit var binding: ActivityPluginBinding
-    private var channel: MethodChannel? = null
-    private var navigatorChannel: MethodChannel? = null
-    private lateinit var eventChannel: EventChannel
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
+    lateinit var binding: ActivityPluginBinding
+    private lateinit var applicationContext: Context
+
+    private var bluetoothChannel: MethodChannel? = null
+    private var bluetoothEventChannel: EventChannel? = null
+
+    private var navigatorChannel: MethodChannel? = null
+
+    private var  paymentChannel: MethodChannel? = null;
 
     @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
     override fun onAttachedToEngine(@NonNull fpb: FlutterPlugin.FlutterPluginBinding) {
+        applicationContext = fpb.applicationContext
         flutterPluginBinding = fpb;
-        bluetoothManager = flutterPluginBinding.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager;
-        eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "$namespace/state_stream");
-
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/method")
-        channel?.setMethodCallHandler(this)
-
-        navigatorChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/${NavigatorMethods.NAMESPACE}");
-        navigatorChannel?.setMethodCallHandler(NavigatorMethods(fpb.applicationContext));
     }
 
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-    override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-        when (call.method) {
-            "getBtBoundedDevices" -> result.success(getBtBoundedDevices());
-            "getPlatformVersion" -> result.success("Android ${android.os.Build.VERSION.RELEASE}")
-            else -> result.notImplemented()
-        };
-    }
-
-    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-        channel?.setMethodCallHandler(null)
-        channel = null
-        navigatorChannel?.setMethodCallHandler(null)
-        navigatorChannel = null;
-
-        bluetoothStateStreamHandler.onCancel("");
-    }
-
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-    fun getBtBoundedDevices(): String? {
-        Log.d(TAG, "getBtBoundedDevices - start");
-        val dev: Set<BluetoothDevice> = bluetoothManager.adapter?.bondedDevices ?: setOf();
-        Log.d(TAG, dev.size.toString());
-        dev.forEach {
-            Log.d(TAG, it.name)
-        }
-        if (dev.count() == 0) return "[]"
-
-        val json = JSONArray(dev.map {
-            JSONObject()
-                    .put( "name", it.name )
-                    .put( "address", it.address )
-                    .put( "type", it.type )
-                    .put( "bondState", it.bondState )
-                    .put( "deviceClass", it.bluetoothClass.deviceClass )
-                    .put( "majorDeviceClass", it.bluetoothClass.majorDeviceClass )
-        }).toString()
-
-        Log.d(TAG, json);
-        Log.d(TAG, "getBtBoundedDevices - end");
-        return json
-    }
-
-    private val bluetoothStateStreamHandler: StreamHandler = object : StreamHandler {
-
-        var events: EventChannel.EventSink? = null
-
-        private val mReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-            @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-            override fun onReceive(context: Context?, intent: Intent) {
-                val action = intent.action
-                val state = bluetoothManager.adapter?.state ?: 0
-                Log.i("${TAG}: Bluetooth", "got action $action($state)")
-                events?.success(state)
-            }
-        }
-
-        @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-        override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-            Log.d("${TAG}: Bluetooth", "onListen")
-            this.events = events;
-            events?.success(bluetoothManager.adapter?.state ?: 0);
-
-            val filter = IntentFilter()
-            filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
-            binding.activity.registerReceiver(mReceiver, filter)
-        }
-
-        override fun onCancel(arguments: Any?) {
-            Log.d("$TAG: Bluetooth", "onCancel")
-            try {
-                binding.activity.unregisterReceiver(mReceiver);
-            } catch (ex: Exception) {
-            }
-        }
-
-    }
-
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        this.binding = binding;
-        eventChannel.setStreamHandler(bluetoothStateStreamHandler);
-    }
+    //region unused
+    override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) { }
 
     override fun onDetachedFromActivityForConfigChanges() {
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
     }
+    //endregion
 
-    override fun onDetachedFromActivity() {
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        this.binding = binding
 
+        initializeBluetooth()
+        initializeNavigatorLaugh()
+        initializePayment()
     }
 
+    override fun onDetachedFromActivity() {
+        destroyBluetooth()
+        destroyNavigator()
+        destroyPayment()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
+    private fun initializeBluetooth(){
+        bluetoothManager = flutterPluginBinding.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager;
+
+        val streamHandler = BluetoothStreamHandler(namespace, bluetoothManager, binding.activity).getHandler()
+        bluetoothEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "$namespace/state_stream");
+        bluetoothEventChannel!!.setStreamHandler(streamHandler);
+
+        val handler  = BluetoothHandler(bluetoothManager)
+        bluetoothChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/method")
+        bluetoothChannel?.setMethodCallHandler(handler)
+    }
+
+    private fun destroyBluetooth(){
+        bluetoothEventChannel!!.setStreamHandler(null);
+        bluetoothChannel?.setMethodCallHandler(null);
+        bluetoothEventChannel = null
+        bluetoothChannel = null;
+    }
+
+
+    private fun initializeNavigatorLaugh(){
+        navigatorChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "$namespace/${NavigatorMethods.NAMESPACE}");
+        navigatorChannel?.setMethodCallHandler(NavigatorMethods(applicationContext));
+    }
+
+    private fun destroyNavigator(){
+        navigatorChannel?.setMethodCallHandler(null);
+        navigatorChannel = null;
+    }
+
+
+    private fun initializePayment(){
+        paymentChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "ga_sdk/IBox/methods")
+        paymentChannel?.setMethodCallHandler(IBox(binding.activity, paymentChannel))
+    }
+
+    private fun destroyPayment(){
+        paymentChannel?.setMethodCallHandler(null)
+        paymentChannel = null
+    }
 }

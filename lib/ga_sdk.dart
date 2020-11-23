@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:ga_sdk/IBox.dart' as Payments;
 import 'package:ga_sdk/dto/BluetoothDeviceDto.dart';
 import 'package:ga_sdk/map_launcher.dart';
 
@@ -18,6 +19,7 @@ class GaSdk {
   }
 
   static MapLauncherClass MapLauncher = MapLauncherClass();
+  static Payments.IBox iBox = Payments.IBox();
 
   static Future<List<BluetoothDeviceDto>> getBoundedDevices() async {
     var data = jsonDecode(await _channel.invokeMethod('getBtBoundedDevices') ?? "[]") as List<dynamic>;

@@ -16,7 +16,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
+  String device = '';
 
   @override
   void initState() {
@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      _platformVersion = platformVersion;
+      device = '';
     });
   }
 
@@ -55,15 +55,31 @@ class _MyAppState extends State<MyApp> {
           body: FutureBuilder<List<BluetoothDeviceDto>>(
               future: GaSdk.getBoundedDevices(),
               initialData: [],
-              builder: (context, AsyncSnapshot<List<BluetoothDeviceDto>> a) => ListView(children: a.data.map((e) => ListTile(title: Text(e.name))).toList())),
+              builder: (context, AsyncSnapshot<List<BluetoothDeviceDto>> a) => ListView(
+                  children: a.data
+                      .map((e) => ListTile(
+                          title: Text(e.name),
+                          selectedTileColor: Colors.green,
+                          selected: device == e.address,
+                          onTap: () {
+                            setState(() {
+                              device = e.address;
+                            });
+                          }))
+                      .toList())),
           floatingActionButton: MaterialButton(
             child: Icon(Icons.map),
             onPressed: () async {
-              GaSdk.MapLauncher.showDirections(
+              /*await GaSdk.iBox.pay(
+
+                  device,
+
+              );*/
+              /*GaSdk.MapLauncher.showDirections(
                   mapType: MapType.yandexNavi,
                   destination: Coords(55.358821, 86.162360),
                   clientId: '293',
-                  privateKey: await rootBundle.loadString('assets/key/293_private_key.pem'));
+                  privateKey: await rootBundle.loadString('assets/key/293_private_key.pem'));*/
             },
           )),
     ));
