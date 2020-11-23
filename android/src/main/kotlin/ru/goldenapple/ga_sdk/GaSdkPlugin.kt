@@ -101,9 +101,9 @@ class GaSdkPlugin() : FlutterPlugin, ActivityAware {
 
 
     private fun initializePayment(){
+        paymentChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "ga_sdk/IBox/methods")
         ibox = IBox(binding.activity, paymentChannel);
         ibox.onCreate();
-        paymentChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "ga_sdk/IBox/methods")
         paymentChannel?.setMethodCallHandler(ibox);
     }
 

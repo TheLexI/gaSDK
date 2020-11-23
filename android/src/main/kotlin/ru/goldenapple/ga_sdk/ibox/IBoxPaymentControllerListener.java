@@ -71,22 +71,27 @@ public class IBoxPaymentControllerListener implements PaymentControllerListener 
                 break;
         }
 
+        Log.d(namespace, "invokeMethod ON_EVENT");
         channel.invokeMethod(DartMethods.ON_EVENT.name, new HashMap<String, String>() {{
             put("code", String.valueOf(readerEvent.ordinal()));
             put("name", readerEvent.name());
             put("data", (map == null ? "" : map.toString()));
         }});
+        Log.d(namespace, "invokeMethod ON_EVENT end");
     }
 
     @Override
     public void onError(PaymentController.PaymentError paymentError, String s) {
         handler.disable();
         Log.d(namespace, String.format("onError {%1s, %2d, %3s}", paymentError.name(), paymentError.ordinal(), s == null ? "" : s));
+
+        Log.d(namespace, "invokeMethod ON_ERROR");
         channel.invokeMethod(DartMethods.ON_ERROR.name, new HashMap<String, String>() {{
             put("code", String.valueOf(paymentError.ordinal()));
             put("name", paymentError.name());
             put("message", s == null ? "" : s);
         }});
+        Log.d(namespace, "invokeMethod ON_ERROR end");
     }
 
     @Override
