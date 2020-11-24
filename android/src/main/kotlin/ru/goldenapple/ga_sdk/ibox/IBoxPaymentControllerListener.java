@@ -31,7 +31,7 @@ public class IBoxPaymentControllerListener implements PaymentControllerListener 
     enum DartMethods {
         ON_ERROR("onError"),
         ON_EVENT("onEvent"),
-        ON_FINISHED("onFinished");
+        ON_SUCCESS("onSuccess");
 
         final String name;
 
@@ -111,7 +111,7 @@ public class IBoxPaymentControllerListener implements PaymentControllerListener 
 
             Log.d(namespace, String.format("onReturnPowerOffNFCResult {%1s}", paymentResultContextJson.toString(4)));
 
-            channel.invokeMethod(DartMethods.ON_FINISHED.name, paymentResultContextJson.toString());
+            channel.invokeMethod(DartMethods.ON_SUCCESS.name, paymentResultContextJson.toString());
 
         } catch (JSONException e) {
             handler.disable();

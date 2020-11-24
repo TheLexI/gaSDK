@@ -47,6 +47,7 @@ class BluetoothStreamHandler(
 
             val filter = IntentFilter()
             filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+            filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
             context.registerReceiver(mReceiver, filter)
         }
 
