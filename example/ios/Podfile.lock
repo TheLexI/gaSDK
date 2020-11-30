@@ -1,0 +1,22 @@
+PODS:
+  - Flutter (1.0.0)
+  - ga_sdk (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - ga_sdk (from `.symlinks/plugins/ga_sdk/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  ga_sdk:
+    :path: ".symlinks/plugins/ga_sdk/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+  ga_sdk: 3599a396ae51cadc3faf8c4e6e23dcf6fc6799ec
+
+PODFILE CHECKSUM: aafe91acc616949ddb318b77800a7f51bffa2a4c
+
+COCOAPODS: 1.10.0

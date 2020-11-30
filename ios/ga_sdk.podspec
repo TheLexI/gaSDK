@@ -15,7 +15,11 @@ A new Flutter plugin.
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.platform = :ios, '8.0'
+  s.platform = :ios, '13.2'
+  s.static_framework = true
+  s.libraries = 'c++'
+  s.ios.frameworks = %w(AVFoundation GLKit CoreLocation MediaPlayer ExternalAccessory AudioToolbox)
+  s.vendored_library = 'Classes/SDK/libibox.pro.sdk.external.a'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
