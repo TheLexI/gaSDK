@@ -33,7 +33,7 @@ class IBox {
   Future<void> pay(
       {@required String device,
       @required String login,
-        @required String extId,
+      @required String extId,
       @required String password,
       @required double amount,
       @required String description,
@@ -47,7 +47,7 @@ class IBox {
     _onSuccess = onSuccess;
 
     await _channel.invokeMapMethod(
-        'pay', PaymentRequest(amount: amount, description: description, device: device, login: login, password: password, email: email, phone: phone).toMap());
+        'pay', PaymentRequest(amount: amount, description: description, device: device, extId: extId ,login: login, password: password, email: email, phone: phone).toMap());
   }
 
   Future<void> cancel() async {

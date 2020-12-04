@@ -44,6 +44,7 @@ public class IBox implements MethodChannel.MethodCallHandler {
         PaymentRequest(HashMap<String, Object> map) {
             amount = Double.parseDouble(map.getOrDefault("amount", 0).toString());
             description = String.valueOf(map.getOrDefault("description", ""));
+            extId = String.valueOf(map.getOrDefault("extId", ""));
             email = String.valueOf(map.getOrDefault("email", null));
             phone = String.valueOf(map.getOrDefault("phone", null));
             device = String.valueOf(map.getOrDefault("device", "").toString());
@@ -54,6 +55,7 @@ public class IBox implements MethodChannel.MethodCallHandler {
         public double amount;
         public String description;
         public String email;
+        public String extId;
         public String phone;
         public String device;
 
@@ -93,7 +95,8 @@ public class IBox implements MethodChannel.MethodCallHandler {
                             args.amount,
                             args.description,
                             args.email,
-                            args.phone
+                            args.phone,
+                            args.extId
                     ),
                     args.device,
                     args.login,
@@ -106,12 +109,14 @@ public class IBox implements MethodChannel.MethodCallHandler {
         }
     }
 
-    PaymentContext buildPaymentContext(Double amount, String description, String email, String phone) {
+    PaymentContext buildPaymentContext(Double amount, String description, String email, String phone, String extId) {
         PaymentContext context = new PaymentContext();
         context.setMethod(_paymentMethod);
         context.setCurrency(PaymentController.Currency.RUB);
         context.setAmount(amount);
         context.setDescription(description);
+        context.setExtID(description);
+        context.setExtID(extId);
         context.setReceiptEmail(email);
         context.setReceiptPhone(phone);
 
