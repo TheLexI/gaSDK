@@ -112,6 +112,8 @@ public class IBox implements MethodChannel.MethodCallHandler {
         context.setCurrency(PaymentController.Currency.RUB);
         context.setAmount(amount);
         context.setDescription(description);
+        context.setExtID(description);
+
         context.setReceiptEmail(email);
         context.setReceiptPhone(phone);
 
