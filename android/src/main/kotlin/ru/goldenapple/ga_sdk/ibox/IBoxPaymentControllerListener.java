@@ -89,7 +89,7 @@ public class IBoxPaymentControllerListener implements PaymentControllerListener 
         channel.invokeMethod(DartMethods.ON_ERROR.name, new HashMap<String, String>() {{
             put("code", String.valueOf(paymentError.ordinal()));
             put("name", paymentError.name());
-            put("message", s == null ? "" : s);
+            put("data", s == null ? "" : s);
         }});
         Log.d(namespace, "invokeMethod ON_ERROR end");
     }
