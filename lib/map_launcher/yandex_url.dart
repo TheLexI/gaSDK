@@ -1,3 +1,5 @@
+import 'package:encrypt/encrypt.dart';
+import 'package:encrypt/encrypt_io.dart';
 import 'package:flutter/material.dart';
 import 'package:ga_sdk/ga_sdk.dart';
 import 'package:ga_sdk/map_launcher/models.dart';
@@ -25,8 +27,12 @@ Future<String> getYaNavDirectionsUrl(
   );
 
   if(null == client || null == privateKey) return Uri.encodeFull(url);
+  //final signature = await GaSdk.MapLauncher.getYandexNaviSignature(url, privateKey);
 
-  final signature = await GaSdk.MapLauncher.getYandexNaviSignature(url, privateKey);
+  final privateKey_ = RSAKeyParser().parse(privateKey);
+  final signer = Signer(RSASigner(RSASignDigest.SHA256, privateKey: privateKey_));
+  final signature =  Uri.encodeFull(signer.sign(url).base64);
+
   url = Uri.encodeFull(url) + '&signature=${Uri.encodeComponent(signature)}';
 
   return url;
