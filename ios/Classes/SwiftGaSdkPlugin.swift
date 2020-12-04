@@ -181,7 +181,7 @@ func signString(string: String, key: SecKey) -> String {
 
     let messageData = string.data(using:String.Encoding.utf8)!
     var hash = Data(count: Int(CC_SHA256_DIGEST_LENGTH))
-
+    
      _ = hash.withUnsafeMutableBytes {digestBytes in
       messageData.withUnsafeBytes {messageBytes in
         CC_SHA256(messageBytes, CC_LONG(messageData.count), digestBytes)
@@ -200,42 +200,7 @@ func getPlatformVersion() -> String {
     return "";
 }
 
-func getBtBoundedDevices(paymentController: PaymentController) -> String {
-    
-    print("getBtBoundedDevices - start")
-    
-    let readerType = PaymentControllerReaderType_P17
-    paymentController.search4BTReaders(with: readerType)
-    
-    let manager = EAAccessoryManager.shared()
-    let devices = manager.connectedAccessories;
-    var listOfDevices:[Device] = []
-
-    for device in devices {
-        let newDevice = Device(name: device.name, address: device.name, type: 0, deviceClass: 0, majorDeviceClass: 0)
-        listOfDevices.append(newDevice)
-    }
-
-    do {
-        let jsonData = try JSONSerialization.data(withJSONObject: listOfDevices, options: [])
-        let jsonString = String(data: jsonData, encoding: .utf8)!
-        print(jsonString)
-        print("getBtBoundedDevices - end")
-        return jsonString;
-    }
-    catch {
-        print("getBtBoundedDevices - exception")
-        return "[]"
-    }
-}
-
-func delayWithSeconds(_ seconds: Double, completion: @escaping () -> ()) {
-    DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
-        completion()
-    }
-}
-
-internal class IboxproFlutterDelegate: NSObject, PaymentControllerDelegate {
+internal class IboxProFlutterDelegate: NSObject, PaymentControllerDelegate {
   private let methodChannel: FlutterMethodChannel
   private let paymentController: PaymentController
   
@@ -303,11 +268,8 @@ internal class IboxproFlutterDelegate: NSObject, PaymentControllerDelegate {
                 let obj = try jsonEncoder.encode(data)
                 self.foundDevices = String(data: obj, encoding: .utf8)!
             } catch {
-                print("Swift is shit")
             }
         }
-        
-        
     }else{
         let device = (devices as! [BTDevice]).first(where: { $0.name() == SwiftGaSdkPlugin.deviceName })
 
@@ -326,7 +288,7 @@ internal class IboxproFlutterDelegate: NSObject, PaymentControllerDelegate {
   public func paymentControllerScheduleStepsCreated(_ scheduleSteps: [Any]!) {}
 }
 
-internal class IBlueStatus: NSObject, FlutterStreamHandler, CBCentralManagerDelegate {
+internal class BlueStatusDelegate: NSObject, FlutterStreamHandler, CBCentralManagerDelegate {
     
     var manager: CBCentralManager!
     var bltStatus: Bool
@@ -364,16 +326,20 @@ internal class IBlueStatus: NSObject, FlutterStreamHandler, CBCentralManagerDele
 public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
 
     private static let apiError = -1
-    private let methodChannel: FlutterMethodChannel
-    private let paymentControllerDelegate: IboxproFlutterDelegate
+    private let methodChannelBlue: FlutterMethodChannel
+    private let methodChannelCards: FlutterMethodChannel
+    private let methodChannelPayment: FlutterMethodChannel
+    private let paymentControllerDelegate: IboxProFlutterDelegate
     private let paymentController: PaymentController
     public static var deviceName = ""
     
-    public required init(_ channel: FlutterMethodChannel) {
-        self.methodChannel = channel
+    public required init(_ channelBlue: FlutterMethodChannel,channelCards: FlutterMethodChannel,channelPayment: FlutterMethodChannel) {
+        self.methodChannelBlue = channelBlue
+        self.methodChannelCards = channelCards
+        self.methodChannelPayment = channelPayment
         self.paymentController = PaymentController.instance()!
-        self.paymentControllerDelegate = IboxproFlutterDelegate(
-          methodChannel: channel,
+        self.paymentControllerDelegate = IboxProFlutterDelegate(
+          methodChannel: channelPayment,
           paymentController: self.paymentController,
           foundDevices: ""
         )
@@ -383,9 +349,11 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
+        let channelBlue = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
+        let channelBlue = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
+        let channelBlue = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
         let eventChannel = FlutterEventChannel(name: "ga_sdk/state_stream", binaryMessenger:registrar.messenger())
-        eventChannel.setStreamHandler(IBlueStatus())
+        eventChannel.setStreamHandler(BlueStatusDelegate())
         let instance = SwiftGaSdkPlugin(channel)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
