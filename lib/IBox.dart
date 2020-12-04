@@ -50,6 +50,12 @@ class IBox {
         'pay', PaymentRequest(amount: amount, description: description, device: device, extId: extId ,login: login, password: password, email: email, phone: phone).toMap());
   }
 
+  Future<void> setBlue({@required String device,
+  @required String login,
+  @required String password}) async {
+    await _channel.invokeMapMethod('setBlue', {"device":device, "login": login, "password" : password});
+  }
+
   Future<void> cancel() async {
     await _channel.invokeMapMethod('cancel');
   }

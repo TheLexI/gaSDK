@@ -5,6 +5,7 @@ import CoreBluetooth
 import ExternalAccessory
 import CryptoKit
 import CommonCrypto
+import Security
 
 private enum MapType: String {
   case apple
@@ -161,25 +162,74 @@ private func isMapAvailable(map: Map) -> Bool {
 }
 
 func loadCert() -> SecKey {
-  let certificateData = NSData(
-    contentsOf:Bundle.main.url(forResource: "yanavigator", withExtension: "der")!
+  var certificateData = NSData(
+    contentsOf:Bundle.main.url(forResource: "key-pkcs8", withExtension: "pem")!
   )
-  var publicKey: SecKey?
-  let attributes = [kSecAttrKeyType: kSecAttrKeyTypeRSA] as CFDictionary
-  let error: UnsafeMutablePointer<Unmanaged<CFError>?>? = nil
-  publicKey = SecKeyCreateWithData(certificateData!, attributes, error)
+  var attributes = [kSecAttrKeyType: kSecAttrKeyTypeRSA] as CFDictionary
+  var error: UnsafeMutablePointer<Unmanaged<CFError>?>? = nil
+  var publicKey = SecKeyCreateWithData(certificateData!, attributes, error)
     
-  let options: [String: Any] =
+  var options: [String: Any] =
     [kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
     kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
     kSecAttrKeySizeInBits as String: 512]
 
-  let key = SecKeyCreateWithData(certificateData!,
+  var key = SecKeyCreateWithData(certificateData!,
     options as CFDictionary,
     nil)
+    
+    //second
+    certificateData = NSData(
+      contentsOf:Bundle.main.url(forResource: "293_private_key", withExtension: "pem")!
+    )
+    attributes = [kSecAttrKeyType: kSecAttrKeyTypeRSA] as CFDictionary
+    publicKey = SecKeyCreateWithData(certificateData!, attributes, error)
+      
+    options =
+      [kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+      kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
+      kSecAttrKeySizeInBits as String: 512]
 
+    key = SecKeyCreateWithData(certificateData!,
+      options as CFDictionary,
+      nil)
+    
   return key!
 }
+
+
+func encrypt(string: String, publicKey: String?) -> String? {
+    guard let publicKey = publicKey else { return nil }
+
+    let keyString = publicKey.replacingOccurrences(of: "-----BEGIN RSA PUBLIC KEY-----\n", with: "").replacingOccurrences(of: "\n-----END RSA PUBLIC KEY-----", with: "")
+    guard let data = Data(base64Encoded: keyString) else { return nil }
+
+    var attributes: CFDictionary {
+        return [kSecAttrKeyType         : kSecAttrKeyTypeRSA,
+                kSecAttrKeyClass        : kSecAttrKeyClassPublic,
+                kSecAttrKeySizeInBits   : 2048,
+                kSecReturnPersistentRef : true] as CFDictionary
+    }
+
+    var error: Unmanaged<CFError>? = nil
+    guard let secKey = SecKeyCreateWithData(data as CFData, attributes, &error) else {
+        print(error.debugDescription)
+        return nil
+    }
+    return encrypt(string: string, publicKey: secKey)
+}
+
+func encrypt(string: String, publicKey: SecKey) -> String? {
+    let buffer = [UInt8](string.utf8)
+
+    var keySize   = SecKeyGetBlockSize(publicKey)
+    var keyBuffer = [UInt8](repeating: 0, count: keySize)
+
+    // Encrypto  should less than key length
+    guard SecKeyEncrypt(publicKey, SecPadding.PKCS1, buffer, buffer.count, &keyBuffer, &keySize) == errSecSuccess else { return nil }
+    return Data(bytes: keyBuffer, count: keySize).base64EncodedString()
+}
+
 
 func signString(string: String, key: SecKey) -> String {
 
@@ -282,9 +332,10 @@ internal class IboxProFlutterDelegate: NSObject, PaymentControllerDelegate {
         if (device != nil) {
           self.paymentController.setBTDevice(device)
           self.paymentController.save(device)
-          self.paymentController.stopSearch4BTReaders()
         }
     }
+    
+    self.paymentController.stopSearch4BTReaders()
   }
 
   public func paymentControllerRequestCardApplication(_ applications: [Any]!) {}
@@ -421,14 +472,14 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
     public func pay(_ call: FlutterMethodCall) {
         let params = call.arguments as! [String: Any]
         DispatchQueue.global(qos: .background).async {
-            self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
-            self.paymentController.authentication()
+            //self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
+            //self.paymentController.authentication()
             
             SwiftGaSdkPlugin.deviceName = params["device"] as! String
             
-            let readerType = PaymentControllerReaderType_P17
+            //let readerType = PaymentControllerReaderType_P17
             //self.paymentController.search4BTReaders(with: readerType)
-            self.paymentController.setReaderType(readerType)
+            //self.paymentController.setReaderType(readerType)
             let amount = (params["amount"] as! NSNumber).doubleValue
             let description = params["description"] as! String
             let email = params["receiptEmail"] as? String
@@ -465,6 +516,19 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
 
          self.methodChannelPayment.invokeMethod("onLogin", arguments: arguments)
        }
+    }
+    
+    public func setBlue(_ call:FlutterMethodCall) {
+        let params = call.arguments as! [String: Any]
+        
+        DispatchQueue.main.async {
+            self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
+            self.paymentController.authentication()
+            SwiftGaSdkPlugin.deviceName = params["device"] as! String
+            let readerType = PaymentControllerReaderType_P17
+            self.paymentController.search4BTReaders(with: readerType)
+            self.paymentController.setReaderType(readerType)
+        }
     }
 
     public func startPayment(_ call: FlutterMethodCall) {
@@ -579,6 +643,9 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
         case "cancel":
           cancel()
           return result(nil)
+        case "setBlue":
+            setBlue(call)
+            return result(nil)
         case "info":
           info(call)
           return result(nil)
@@ -610,9 +677,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
             
             let seconds = 3.0
             DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
-                
                 print("Search BT Devices finished")
-                
                 if(!self.paymentControllerDelegate.foundDevices.isEmpty){
                     print("Device found " + self.paymentControllerDelegate.foundDevices)
                     result(self.paymentControllerDelegate.foundDevices)
@@ -620,7 +685,6 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
                     print("Device not found sry man")
                     result("[]")
                 }
-                self.paymentController.stopSearch4BTReaders()
             }
            
             return;
@@ -685,7 +749,8 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
         case "getYandexNaviSignature":
             let args = call.arguments as! NSDictionary
             let url = args["url"] as! String
-            let signature = signString(string: url, key: loadCert())
+            let key = args["privateKey"] as! String
+            let signature = encrypt(string: url, publicKey: key)
             result(signature)
             return;
 
