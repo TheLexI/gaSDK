@@ -33,6 +33,7 @@ class IBox {
   Future<void> pay(
       {@required String device,
       @required String login,
+        @required String extId,
       @required String password,
       @required double amount,
       @required String description,
