@@ -24,19 +24,19 @@ private enum MapType: String {
   }
 }
 
-private class Device {
+private class Device : Codable {
     let name: String;
     let address: String;
-    let type: String?;
-    let bondState: Bool;
-    let deviceClass: String?;
-    let majorDeviceClass: String?;
+    let type: Int;
+    let bondState: Int;
+    let deviceClass: Int;
+    let majorDeviceClass: Int;
 
-    init(name: String, address: String, type: String?, deviceClass: String?, majorDeviceClass: String?) {
+    init(name: String, address: String, type: Int, deviceClass: Int, majorDeviceClass: Int) {
         self.name = name;
         self.type = type;
         self.address = address;
-        self.bondState = true;
+        self.bondState = 1;
         self.deviceClass = deviceClass;
         self.majorDeviceClass = majorDeviceClass;
     }
@@ -207,14 +207,12 @@ func getBtBoundedDevices(paymentController: PaymentController) -> String {
     let readerType = PaymentControllerReaderType_P17
     paymentController.search4BTReaders(with: readerType)
     
-
-    
     let manager = EAAccessoryManager.shared()
     let devices = manager.connectedAccessories;
     var listOfDevices:[Device] = []
 
     for device in devices {
-        let newDevice = Device(name: device.name, address: device.modelNumber, type: device.serialNumber, deviceClass: device.manufacturer, majorDeviceClass: device.description)
+        let newDevice = Device(name: device.name, address: device.name, type: 0, deviceClass: 0, majorDeviceClass: 0)
         listOfDevices.append(newDevice)
     }
 
@@ -240,9 +238,12 @@ func delayWithSeconds(_ seconds: Double, completion: @escaping () -> ()) {
 internal class IboxproFlutterDelegate: NSObject, PaymentControllerDelegate {
   private let methodChannel: FlutterMethodChannel
   private let paymentController: PaymentController
+  
+  public var foundDevices : String
 
-  public required init(methodChannel: FlutterMethodChannel, paymentController: PaymentController) {
+    public required init(methodChannel: FlutterMethodChannel, paymentController: PaymentController, foundDevices :String) {
     self.methodChannel = methodChannel
+    self.foundDevices = ""
     self.paymentController = paymentController
   }
 
@@ -289,20 +290,75 @@ internal class IboxproFlutterDelegate: NSObject, PaymentControllerDelegate {
   }
 
   public func paymentControllerRequestBTDevice(_ devices: [Any]!) {
-    let device = (devices as! [BTDevice]).first(where: { $0.name() == SwiftGaSdkPlugin.deviceName })
+    if(SwiftGaSdkPlugin.deviceName.isEmpty){
+        let foundDevices = devices as! [BTDevice]
+        if(foundDevices.count > 0) {
+            var data : [Device] = []
+            for d in foundDevices {
+                data.append(Device(name: d.name(), address: d.uuid(), type: 0, deviceClass: 0, majorDeviceClass: 0))
+            }
+            
+            do {
+                let jsonEncoder = JSONEncoder()
+                let obj = try jsonEncoder.encode(data)
+                self.foundDevices = String(data: obj, encoding: .utf8)!
+            } catch {
+                print("Swift is shit")
+            }
+        }
+        
+        
+    }else{
+        let device = (devices as! [BTDevice]).first(where: { $0.name() == SwiftGaSdkPlugin.deviceName })
 
-    if (device != nil) {
-      self.paymentController.setBTDevice(device)
-      self.paymentController.save(device)
-      self.paymentController.stopSearch4BTReaders()
+        if (device != nil) {
+          self.paymentController.setBTDevice(device)
+          self.paymentController.save(device)
+          self.paymentController.stopSearch4BTReaders()
 
-      methodChannel.invokeMethod("onReaderSetBTDevice", arguments: nil)
+          methodChannel.invokeMethod("onReaderSetBTDevice", arguments: nil)
+        }
     }
   }
 
   public func paymentControllerRequestCardApplication(_ applications: [Any]!) {}
   public func paymentControllerScheduleStepsStart() {}
   public func paymentControllerScheduleStepsCreated(_ scheduleSteps: [Any]!) {}
+}
+
+internal class IBlueStatus: NSObject, FlutterStreamHandler, CBCentralManagerDelegate {
+    
+    var manager: CBCentralManager!
+    var bltStatus: Bool
+    
+    override init() {
+        self.bltStatus = false
+        super.init()
+        
+        manager = CBCentralManager(delegate: self, queue: nil)
+    }
+    
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        if central.state != .poweredOn {
+          print("power is off")
+          bltStatus = false
+      } else {
+         print("power is on")
+         bltStatus = true
+      }
+    }
+    
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        return nil
+    }
+    
+    public func onListen(withArguments arguments: Any?,
+                         eventSink: @escaping FlutterEventSink) -> FlutterError? {
+        
+        let state: Int = self.bltStatus ? 12 : 10
+        eventSink(state)
+        return nil
+    }
 }
 
 public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
@@ -316,18 +372,20 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
     public required init(_ channel: FlutterMethodChannel) {
         self.methodChannel = channel
         self.paymentController = PaymentController.instance()!
-        
         self.paymentControllerDelegate = IboxproFlutterDelegate(
           methodChannel: channel,
-          paymentController: self.paymentController
+          paymentController: self.paymentController,
+          foundDevices: ""
         )
-
+        
         self.paymentController.setDelegate(paymentControllerDelegate)
         super.init()
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
+        let eventChannel = FlutterEventChannel(name: "ga_sdk/state_stream", binaryMessenger:registrar.messenger())
+        eventChannel.setStreamHandler(IBlueStatus())
         let instance = SwiftGaSdkPlugin(channel)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
@@ -391,6 +449,9 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
         DispatchQueue.global(qos: .background).async {
             self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
             self.paymentController.authentication()
+            
+            SwiftGaSdkPlugin.deviceName = params["device"] as! String
+            
             let readerType = PaymentControllerReaderType_P17
             self.paymentController.search4BTReaders(with: readerType)
             self.paymentController.setReaderType(readerType)
@@ -399,6 +460,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
             let email = params["receiptEmail"] as? String
             let phone = params["receiptPhone"] as? String
             let singleStepAuth = params["singleStepAuth"] as! Bool
+            
             let ctx = PaymentContext.init()
            
             let inputType = TransactionInputType(
@@ -586,7 +648,27 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
           stopSearchBTDevice()
           return result(nil)
         case "getBtBoundedDevices":
-            return result(nil)
+            print("Search BT Devices started")
+            
+            let readerType = PaymentControllerReaderType_P17
+            self.paymentController.search4BTReaders(with: readerType)
+            
+            let seconds = 3.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + seconds) {
+                
+                print("Search BT Devices finished")
+                
+                if(!self.paymentControllerDelegate.foundDevices.isEmpty){
+                    print("Device found " + self.paymentControllerDelegate.foundDevices)
+                    result(self.paymentControllerDelegate.foundDevices)
+                }else{
+                    print("Device not found sry man")
+                    result("[]")
+                }
+                self.paymentController.stopSearch4BTReaders()
+            }
+           
+            return;
         case "getInstalledMaps":
             result(maps.filter({ isMapAvailable(map: $0) }).map({ $0.toMap() }))
 
