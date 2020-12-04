@@ -164,7 +164,11 @@ func loadCert() -> SecKey {
   let certificateData = NSData(
     contentsOf:Bundle.main.url(forResource: "yanavigator", withExtension: "der")!
   )
-
+  var publicKey: SecKey?
+  let attributes = [kSecAttrKeyType: kSecAttrKeyTypeRSA] as CFDictionary
+  let error: UnsafeMutablePointer<Unmanaged<CFError>?>? = nil
+  publicKey = SecKeyCreateWithData(certificateData!, attributes, error)
+    
   let options: [String: Any] =
     [kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
     kSecAttrKeyClass as String: kSecAttrKeyClassPrivate,
@@ -225,33 +229,35 @@ internal class IboxProFlutterDelegate: NSObject, PaymentControllerDelegate {
   }
 
   public func paymentControllerDone(_ transactionData: TransactionData!) {
-    let arguments: [String:Any] = [
-      "requiredSignature": transactionData.requiredSignature,
-      "transaction": SwiftGaSdkPlugin.formatTransactionItem(transactionData.transaction!)
-    ]
-
+    guard let data = try? JSONSerialization.data(withJSONObject: SwiftGaSdkPlugin.formatTransactionItem(transactionData.transaction!), options: []) else {
+        return;
+    }
+    let arguments: String = String(data: data, encoding: String.Encoding.utf8)!
     disable()
 
-    methodChannel.invokeMethod("onPaymentComplete", arguments: arguments)
+    methodChannel.invokeMethod("onSuccess", arguments: arguments)
   }
 
   public func paymentControllerError(_ error: PaymentControllerErrorType, message: String?) {
-    let arguments: [String:Any] = [
-      "nativeErrorType": Int(error.rawValue),
-      "errorMessage": message != nil ? message! : ""
+    let arguments: [String:String] = [
+        "code": String(error.rawValue),
+        "name": message != nil ? message! : "",
+        "data": ""
     ]
 
     disable()
 
-    methodChannel.invokeMethod("onPaymentError", arguments: arguments)
+    methodChannel.invokeMethod("onError", arguments: arguments)
   }
 
   public func paymentControllerReaderEvent(_ event: PaymentControllerReaderEventType) {
-    let arguments: [String:Int] = [
-      "nativeReaderEventType": Int(event.rawValue)
+    let arguments: [String:String] = [
+        "code": String(event.rawValue),
+        "name": "",
+        "data": ""
     ]
 
-    methodChannel.invokeMethod("onReaderEvent", arguments: arguments)
+    methodChannel.invokeMethod("onEvent", arguments: arguments)
   }
 
   public func paymentControllerRequestBTDevice(_ devices: [Any]!) {
@@ -277,8 +283,6 @@ internal class IboxProFlutterDelegate: NSObject, PaymentControllerDelegate {
           self.paymentController.setBTDevice(device)
           self.paymentController.save(device)
           self.paymentController.stopSearch4BTReaders()
-
-          methodChannel.invokeMethod("onReaderSetBTDevice", arguments: nil)
         }
     }
   }
@@ -350,12 +354,14 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channelBlue = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
-        let channelBlue = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
-        let channelBlue = FlutterMethodChannel(name: "ga_sdk/method", binaryMessenger: registrar.messenger())
+        let channelPayment = FlutterMethodChannel(name: "ga_sdk/IBox/methods", binaryMessenger: registrar.messenger())
+        let channelCards = FlutterMethodChannel(name: "ga_sdk/NavigatorMethods", binaryMessenger: registrar.messenger())
         let eventChannel = FlutterEventChannel(name: "ga_sdk/state_stream", binaryMessenger:registrar.messenger())
         eventChannel.setStreamHandler(BlueStatusDelegate())
-        let instance = SwiftGaSdkPlugin(channel)
-        registrar.addMethodCallDelegate(instance, channel: channel)
+        let instance = SwiftGaSdkPlugin(channelBlue,channelCards: channelCards,channelPayment: channelPayment)
+        registrar.addMethodCallDelegate(instance, channel: channelBlue)
+        registrar.addMethodCallDelegate(instance, channel: channelCards)
+        registrar.addMethodCallDelegate(instance, channel: channelPayment)
     }
     
     public func adjustPayment(_ call: FlutterMethodCall) {
@@ -370,7 +376,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
          )
         
          let arguments = self.checkResult(res)
-         self.methodChannel.invokeMethod("onPaymentAdjust", arguments: arguments)
+         self.methodChannelPayment.invokeMethod("onPaymentAdjust", arguments: arguments)
        }
     }
 
@@ -386,7 +392,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
          )
          let arguments = self.checkResult(res)
 
-         self.methodChannel.invokeMethod("onReversePaymentAdjust", arguments: arguments)
+         self.methodChannelPayment.invokeMethod("onReversePaymentAdjust", arguments: arguments)
        }
     }
 
@@ -408,7 +414,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
            arguments["transaction"] = formattedData
          }
 
-         self.methodChannel.invokeMethod("onInfo", arguments: arguments)
+         self.methodChannelPayment.invokeMethod("onInfo", arguments: arguments)
        }
     }
     
@@ -421,18 +427,19 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
             SwiftGaSdkPlugin.deviceName = params["device"] as! String
             
             let readerType = PaymentControllerReaderType_P17
-            self.paymentController.search4BTReaders(with: readerType)
+            //self.paymentController.search4BTReaders(with: readerType)
             self.paymentController.setReaderType(readerType)
             let amount = (params["amount"] as! NSNumber).doubleValue
             let description = params["description"] as! String
             let email = params["receiptEmail"] as? String
             let phone = params["receiptPhone"] as? String
-            let singleStepAuth = params["singleStepAuth"] as! Bool
+            let extId = params["extId"] as! String
+            let singleStepAuth = true
             
             let ctx = PaymentContext.init()
            
             let inputType = TransactionInputType(
-             rawValue: TransactionInputType.RawValue(params["inputType"] as! Int)
+                rawValue: TransactionInputType.RawValue(0)
             )
             ctx.inputType = inputType
             ctx.currency = CurrencyType_RUB
@@ -440,10 +447,11 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
             ctx.description = description
             ctx.receiptMail = email
             ctx.receiptPhone = phone
+            ctx.extID = extId
 
             self.paymentController.setPaymentContext(ctx)
-            self.paymentController.enable()
             self.paymentController.setSingleStepAuthentication(singleStepAuth)
+            self.paymentController.enable()
         }
     }
 
@@ -455,7 +463,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
          let res = self.paymentController.authentication()
          let arguments = self.checkResult(res)
 
-         self.methodChannel.invokeMethod("onLogin", arguments: arguments)
+         self.methodChannelPayment.invokeMethod("onLogin", arguments: arguments)
        }
     }
 
@@ -501,7 +509,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
              transactionItem.reverseMode() == TransactionReverseMode_NONE ||
              transactionItem.reverseMode() == TransactionReverseMode_AUTO_REVERSE
            ) {
-             self.methodChannel.invokeMethod("onReverseReject", arguments: arguments)
+             self.methodChannelPayment.invokeMethod("onReverseReject", arguments: arguments)
              return
            }
 
@@ -516,7 +524,7 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
            self.paymentController.enable()
            self.paymentController.setSingleStepAuthentication(singleStepAuth)
          } else {
-           self.methodChannel.invokeMethod("onHistoryError", arguments: arguments)
+           self.methodChannelPayment.invokeMethod("onHistoryError", arguments: arguments)
          }
        }
         
@@ -550,37 +558,11 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
         let card = transactionItem.card()
 
         return [
-          "id": transactionItem.id(),
-          "rrn": transactionItem.rrn(),
-          "emvData": transactionItem.emvData(),
-          "date": transactionItem.date(),
-          "currencyID": transactionItem.currencyID(),
-          "descriptionOfTransaction": transactionItem.descriptionOfTransaction(),
-          "stateDisplay": transactionItem.stateDisplay(),
-          "invoice": transactionItem.invoice(),
-          "approvalCode": transactionItem.approvalCode(),
-          "operation": transactionItem.operation(),
-          "cardholderName": transactionItem.cardholderName(),
-          "terminalName": transactionItem.terminalName(),
-          "amount": transactionItem.amount(),
-          "amountNetto": transactionItem.amountNetto(),
-          "feeTotal": transactionItem.feeTotal(),
-          "latitude": transactionItem.latitude(),
-          "longitude": transactionItem.longitude(),
-          "state": transactionItem.state(),
-          "subState": transactionItem.subState(),
-          "inputType": Int(transactionItem.inputType().rawValue),
-          "displayMode": Int(transactionItem.displayMode().rawValue),
-          "acquirerID": transactionItem.acquirerID(),
-          "card": [
-            "iin": card?.iin(),
-            "expiration": card?.expiration(),
-            "panMasked": card?.panMasked(),
-            "panEnding": card?.panEnding(),
-            "binID": card?.binID()
-          ]
+          "TranId": transactionItem.id(),
+          "CardHash": card?.panMasked(),
+          "DeferredData": transactionItem.date(),
+          "RequiresSignature": false
         ]
-        
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -617,6 +599,11 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
           return result(nil)
         case "getBtBoundedDevices":
             print("Search BT Devices started")
+            
+            if(!self.paymentControllerDelegate.foundDevices.isEmpty) {
+                result(self.paymentControllerDelegate.foundDevices)
+                return
+            }
             
             let readerType = PaymentControllerReaderType_P17
             self.paymentController.search4BTReaders(with: readerType)
