@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Gradle: ./../../../../ga_sdk/android/libs/ibox.pro.sdk.external.aar" type="AndroidModuleLibraryType">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/59c7e316005c27971a1e55826a413002/jetified-ibox.pro.sdk.external/jars/classes.jar!/" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/59c7e316005c27971a1e55826a413002/jetified-ibox.pro.sdk.external/jars/libs/commons-lang-2.6.jar!/" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/59c7e316005c27971a1e55826a413002/jetified-ibox.pro.sdk.external/jars/libs/dspread_android_pos_sdk_2.9.3.jar!/" />
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/59c7e316005c27971a1e55826a413002/jetified-ibox.pro.sdk.external/jars/libs/httpmime-4.1.2.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-2/files-2.1/59c7e316005c27971a1e55826a413002/jetified-ibox.pro.sdk.external/AndroidManifest.xml" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
