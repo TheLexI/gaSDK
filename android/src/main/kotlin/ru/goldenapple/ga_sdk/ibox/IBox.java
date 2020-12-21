@@ -7,6 +7,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.function.Function;
 
@@ -14,6 +15,7 @@ import ibox.pro.sdk.external.PaymentContext;
 import ibox.pro.sdk.external.PaymentController;
 import ibox.pro.sdk.external.PaymentControllerListener;
 import ibox.pro.sdk.external.PaymentException;
+import ibox.pro.sdk.external.ReversePaymentContext;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
@@ -21,7 +23,8 @@ public class IBox implements MethodChannel.MethodCallHandler {
 
     enum Methods {
         PAY("pay"),
-        CANCEL("cancel");
+        CANCEL("cancel"),
+        REVERSE("reverse");
 
         public final String method;
 
@@ -57,12 +60,46 @@ public class IBox implements MethodChannel.MethodCallHandler {
         public String email;
         public String extId;
         public String phone;
-        public String device;
 
+        public String device;
         public String login;
         public String password;
 
     }
+
+    static class ReversePaymentRequest {
+        public final String transactionID;
+        public final String extID;
+
+        final public String device;
+        final public String login;
+        final public String password;
+        final public Double returnAmount;
+
+        public ReversePaymentRequest(String transactionID, String extID, String device, String login, String password, Double returnAmount) {
+            this.transactionID = transactionID;
+            this.extID = extID;
+            this.device = device;
+            this.login = login;
+            this.password = password;
+            this.returnAmount = returnAmount;
+        }
+
+        public ReversePaymentContext getReversePaymentContext() {
+            ReversePaymentContext context = new ReversePaymentContext();
+            context.setTransactionID(transactionID);
+            context.setAction(PaymentController.ReverseAction.CANCEL);
+            context.setCurrency(PaymentController.Currency.RUB);
+            context.setReturnAmount(returnAmount);
+            context.setAuxData(null);
+            context.setReceiptEmail(null);
+            context.setReceiptPhone(null);
+            context.setSuppressSignatureWaiting(true);
+
+            return context;
+        }
+    }
+
 
     final String namespace = "ga_sdk.IBox";
     final PaymentController _paymentController;
@@ -102,11 +139,30 @@ public class IBox implements MethodChannel.MethodCallHandler {
                     args.login,
                     args.password
             );
+        } else if (Methods.REVERSE == calledMethod) {
+            ReversePaymentRequest reversePaymentRequest = new ReversePaymentRequest(
+                    call.<String>argument("transactionID"),
+                    call.<String>argument("extID"),
+                    call.<String>argument("device"),
+                    call.<String>argument("login"),
+                    call.<String>argument("password"),
+                    call.<Double>argument("returnAmount")
+            );
+
+            reversePayment(
+                    context,
+                    reversePaymentRequest.getReversePaymentContext(),
+                    reversePaymentRequest.device,
+                    reversePaymentRequest.login,
+                    reversePaymentRequest.password
+            );
         } else if (Methods.CANCEL == calledMethod) {
             dismiss();
+            result.success(true);
         } else {
             result.notImplemented();
         }
+
     }
 
     PaymentContext buildPaymentContext(Double amount, String description, String email, String phone, String extId) {
@@ -134,6 +190,26 @@ public class IBox implements MethodChannel.MethodCallHandler {
         _beginPayment = (t) -> {
             try {
                 _paymentController.startPayment(context, paymentContext);
+                //return ;
+            } catch (PaymentException ex) {
+                Log.e(namespace, ex.toString());
+                //  return;
+            }
+            return null;
+        };
+    }
+
+    void reversePayment(Context context, ReversePaymentContext ReversePaymentContext, String device, String login, String password) {
+        _paymentController.setReaderType(context, PaymentController.ReaderType.P17, device);
+        _paymentController.setSingleStepEMV(true);
+        _paymentController.setCredentials(login, password);
+        _paymentController.auth(context);
+        _paymentController.initPaymentSession();
+        _paymentController.enable();
+
+        _beginPayment = (t) -> {
+            try {
+                _paymentController.reversePayment(context, ReversePaymentContext);
                 //return ;
             } catch (PaymentException ex) {
                 Log.e(namespace, ex.toString());
