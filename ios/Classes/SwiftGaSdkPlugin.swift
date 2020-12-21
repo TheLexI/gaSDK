@@ -469,17 +469,47 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
        }
     }
     
+    public func reverse(_ call: FlutterMethodCall) {
+        let params = call.arguments as! [String: Any]
+        DispatchQueue.global(qos: .background).async {
+            SwiftGaSdkPlugin.deviceName = params["device"] as! String
+            
+            self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
+            self.paymentController.authentication()
+            
+            let res = self.paymentController.history(withTransactionID: (params["transactionID"] as! String))
+            let transactionItem = (res!.transactions().first as! TransactionItem)
+            
+            let amount = (params["returnAmount"] as! NSNumber).doubleValue
+            let description = params["description"] as! String
+            let email = params["receiptEmail"] as? String
+            let phone = params["receiptPhone"] as? String
+            let extId = params["extID"] as! String
+            let singleStepAuth = true
+        
+            let ctx = ReversePaymentContext.init()
+            ctx.currency = CurrencyType_RUB
+            ctx.amountReverse = amount
+            ctx.receiptMail = email
+            ctx.receiptPhone = phone
+            ctx.transaction = transactionItem
+            ctx.extID = extId
+            ctx.description = description
+
+            self.paymentController.setPaymentContext(ctx)
+            self.paymentController.setSingleStepAuthentication(singleStepAuth)
+            self.paymentController.enable()
+        }
+    }
+    
     public func pay(_ call: FlutterMethodCall) {
         let params = call.arguments as! [String: Any]
         DispatchQueue.global(qos: .background).async {
-            //self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
-            //self.paymentController.authentication()
+            self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
+            self.paymentController.authentication()
             
             SwiftGaSdkPlugin.deviceName = params["device"] as! String
             
-            //let readerType = PaymentControllerReaderType_P17
-            //self.paymentController.search4BTReaders(with: readerType)
-            //self.paymentController.setReaderType(readerType)
             let amount = (params["amount"] as! NSNumber).doubleValue
             let description = params["description"] as! String
             let email = params["receiptEmail"] as? String
@@ -639,6 +669,9 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
           return result(nil)
         case "pay":
             pay(call)
+          return result(nil)
+        case "reverse":
+            reverse(call)
           return result(nil)
         case "cancel":
           cancel()
