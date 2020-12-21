@@ -472,16 +472,15 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
     public func reverse(_ call: FlutterMethodCall) {
         let params = call.arguments as! [String: Any]
         DispatchQueue.global(qos: .background).async {
-            SwiftGaSdkPlugin.deviceName = params["device"] as! String
             
             self.paymentController.setEmail((params["login"] as! String), password: (params["password"] as! String))
             self.paymentController.authentication()
             
+            SwiftGaSdkPlugin.deviceName = params["device"] as! String
             let res = self.paymentController.history(withTransactionID: (params["transactionID"] as! String))
             let transactionItem = (res!.transactions().first as! TransactionItem)
             
             let amount = (params["returnAmount"] as! NSNumber).doubleValue
-            let description = params["description"] as! String
             let email = params["receiptEmail"] as? String
             let phone = params["receiptPhone"] as? String
             let extId = params["extID"] as! String
@@ -494,7 +493,6 @@ public class SwiftGaSdkPlugin: NSObject, FlutterPlugin  {
             ctx.receiptPhone = phone
             ctx.transaction = transactionItem
             ctx.extID = extId
-            ctx.description = description
 
             self.paymentController.setPaymentContext(ctx)
             self.paymentController.setSingleStepAuthentication(singleStepAuth)

@@ -57,6 +57,7 @@ class IBox {
   Future<void> reverse({
     @required String transactionID,
     @required String extID,
+    @required String description,
     @required String device,
     @required String login,
     @required String password,
@@ -138,6 +139,67 @@ class IBox {
     }
   }
 
+
+
+  String eventConvert(int paymentEvent) {
+    if (Platform.isAndroid) return androidEventConvert(paymentEvent);
+    else if (Platform.isIOS) return IosEventConvert(paymentEvent);
+  }
+
+  String androidEventConvert(int paymentEvent) {
+    switch (paymentEvent) {
+      case AndroidReaderEventType.StartInit:
+      case AndroidReaderEventType.Connected:
+        return "Инициализация ридера";
+      case AndroidReaderEventType.Disconnected:
+        return "Ридер не подключен";
+      case AndroidReaderEventType.InitSuccessfully:
+        return "Подождите...";
+      case AndroidReaderEventType.InitFailed:
+        return "Ошибка инициализации";
+      case AndroidReaderEventType.SwipeCard:
+      case AndroidReaderEventType.EmvTransactionStarted:
+      case AndroidReaderEventType.NfcTransactionStarted:
+        return "Оплата";
+      case AndroidReaderEventType.WaitingForCard:
+        return "Предъявите карту";
+      case AndroidReaderEventType.PaymentCanceled:
+        return "Платеж отменен";
+      case AndroidReaderEventType.EjectCardTimeout:
+      case AndroidReaderEventType.EjectCard:
+        return "Извлеките карту";
+      case AndroidReaderEventType.BadSwipe:
+        return "Ошибка при считывании магнитной полосы";
+      case AndroidReaderEventType.LowBattery:
+        return "Ридер почти разряжен";
+      case AndroidReaderEventType.CardTimeout:
+        return "Таймаут ожидания карты";
+      case AndroidReaderEventType.PinTimeout:
+        return "Таймаут ожидания ввода ПИН";
+      default:
+        return "";
+    }
+  }
+
+  String IosEventConvert(int paymentEvent) {
+    switch (paymentEvent) {
+      case IosReaderEventType.Initialized:
+        return "Предъявите карту";
+      case IosReaderEventType.Connected:
+        return "Инициализация ридера";
+      case IosReaderEventType.Disconnected:
+        return "Ридер не подключен";
+      case IosReaderEventType.CardInserted:
+        return "Карта прочитана";
+      case IosReaderEventType.CardSwiped:
+        return "Карта прочитана";
+      case IosReaderEventType.EMVStarted:
+        return "Подождите...";
+      default:
+        return "";
+    }
+  }
+
   String iosErrorConvert(int paymentError) {
     String msg = ''; // paymentError.message ?? '';
     switch (paymentError) {
@@ -185,62 +247,6 @@ class IBox {
         return "Ошибка проведения отмены платежа";
       default:
         return "Ошибка EMV ($msg)";
-    }
-  }
-
-  String eventConvert(int paymentEvent) {
-    if (Platform.isAndroid) return androidEventConvert(paymentEvent);
-    else if (Platform.isIOS) return IosEventConvert(paymentEvent);
-  }
-
-  String androidEventConvert(int paymentEvent) {
-    switch (paymentEvent) {
-      case AndroidReaderEventType.StartInit:
-      case AndroidReaderEventType.Connected:
-        return "Инициализация ридера";
-      case AndroidReaderEventType.Disconnected:
-        return "Ридер не подключен";
-      case AndroidReaderEventType.InitSuccessfully:
-        return "Подождите...";
-      case AndroidReaderEventType.InitFailed:
-        return "Ошибка инициализации";
-      case AndroidReaderEventType.SwipeCard:
-      case AndroidReaderEventType.EmvTransactionStarted:
-      case AndroidReaderEventType.NfcTransactionStarted:
-        return "Оплата";
-      case AndroidReaderEventType.WaitingForCard:
-        return "Предъявите карту";
-      case AndroidReaderEventType.PaymentCanceled:
-        return "Платеж отменен";
-      case AndroidReaderEventType.EjectCardTimeout:
-      case AndroidReaderEventType.EjectCard:
-        return "Извлеките карту";
-      case AndroidReaderEventType.BadSwipe:
-        return "Ошибка при считывании магнитной полосы";
-      case AndroidReaderEventType.LowBattery:
-        return "Ридер почти разряжен";
-      case AndroidReaderEventType.CardTimeout:
-        return "Таймаут ожидания карты";
-      case AndroidReaderEventType.PinTimeout:
-        return "Таймаут ожидания ввода ПИН";
-      default:
-        return "";
-    }
-  }
-
-  String IosEventConvert(int paymentEvent) {
-    switch (paymentEvent) {
-      case IosReaderEventType.Initialized:
-      case IosReaderEventType.Connected:
-        return "Инициализация ридера";
-      case IosReaderEventType.Disconnected:
-        return "Ридер не подключен";
-      case IosReaderEventType.CardInserted:
-      case IosReaderEventType.CardSwiped:
-      case IosReaderEventType.EMVStarted:
-        return "Подождите...";
-      default:
-        return "";
     }
   }
 }
